@@ -37,7 +37,7 @@ use X11::IdleTime;
 # ------------------------------------------------------------------------------
 const my $SEC_IN_MIN => 60;
 const my @TERMSIG    => qw/INT TERM QUIT PIPE ABRT BUS FPE ILL SEGV SYS STOP TRAP/;
-our $VERSION = '1.0';
+our $VERSION = '1.01';
 
 # ------------------------------------------------------------------------------
 check_pidfile($PIDFILE) and _error('Already loaded');
