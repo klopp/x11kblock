@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 # ------------------------------------------------------------------------------
-my ( $INLINEDIR, $SELF_NAME, $PIDFILE, $ICON_PATH, $ICON_ON, $ICON_OFF );
+my ( $INLINE_DIR, $SELF_NAME, $PID_FILE, $ICON_PATH );
 
 # ------------------------------------------------------------------------------
 BEGIN {
@@ -13,11 +13,11 @@ BEGIN {
     use File::Basename;
     use File::Path          qw/make_path/;
     use File::Util::Tempdir qw/get_user_tempdir/;
-    $SELF_NAME = basename($PROGRAM_NAME);
-    $PIDFILE   = sprintf '%s/%s.pid', get_user_tempdir(), $SELF_NAME;
-    $ICON_PATH = dirname($PROGRAM_NAME) . '/i';
-    $INLINEDIR = sprintf '%s/%s.inline', get_user_tempdir(), $SELF_NAME;
-    make_path($INLINEDIR);
+    $SELF_NAME  = basename($PROGRAM_NAME);
+    $PID_FILE   = sprintf '%s/%s.pid', get_user_tempdir(), $SELF_NAME;
+    $ICON_PATH  = dirname($PROGRAM_NAME) . '/i';
+    $INLINE_DIR = sprintf '%s/%s.inline', get_user_tempdir(), $SELF_NAME;
+    make_path($INLINE_DIR);
 }
 
 # ------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ use Const::Fast;
 use Daemon::Daemonize qw/check_pidfile delete_pidfile write_pidfile/;
 use Getopt::Long;
 use Gtk3 qw/-init/;
-use Inline ( Config => directory => $INLINEDIR, );
+use Inline ( Config => directory => $INLINE_DIR, );
 use Inline (
     C    => 'DATA',
     libs => '-lX11',
@@ -40,9 +40,9 @@ const my @TERMSIG    => qw/INT TERM QUIT PIPE ABRT BUS FPE ILL SEGV SYS STOP TRA
 our $VERSION = '1.01';
 
 # ------------------------------------------------------------------------------
-check_pidfile($PIDFILE) and _error('Already loaded');
+check_pidfile($PID_FILE) and _error('Already loaded');
 try {
-    write_pidfile($PIDFILE);
+    write_pidfile($PID_FILE);
 }
 catch {
     _error($_);
@@ -60,7 +60,7 @@ if ( $opt{t} ) {
 _load_icons();
 
 # ------------------------------------------------------------------------------
-my $locked   = 0;
+my ( $locked, $ICON_ON, $ICON_OFF ) = (0);
 my $trayicon = Gtk3::StatusIcon->new;
 $trayicon->set_tooltip_text("Left click: switch locking\nRight click: unlock and exit");
 $trayicon->set_from_pixbuf($ICON_ON);
@@ -94,7 +94,7 @@ _term();
 sub _term
 {
     _unlock();
-    delete_pidfile($PIDFILE);
+    delete_pidfile($PID_FILE);
     return exit 0;
 }
 
