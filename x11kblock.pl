@@ -23,6 +23,7 @@ BEGIN {
 # ------------------------------------------------------------------------------
 use Const::Fast;
 use Daemon::Daemonize qw/check_pidfile delete_pidfile write_pidfile/;
+use File::Which       qw/which/;
 use Getopt::Long;
 use Gtk3 qw/-init/;
 use Inline ( Config => directory => $INLINE_DIR, );
@@ -30,6 +31,7 @@ use Inline (
     C    => 'DATA',
     libs => '-lX11',
 );
+use IPC::Run       qw/run/;
 use Sys::SigAction qw/set_sig_handler/;
 use Try::Catch;
 use X11::IdleTime;
@@ -48,9 +50,13 @@ catch {
     _error($_);
 };
 
-my %opt = ( i => 'kb', );
+my %opt = ( i => 'kb' );
 GetOptions(
-    'i=s'    => \$opt{i},
+    'i=s' => \$opt{i},
+    'b'   => sub {
+        $opt{xset} = which('xset');
+        $opt{xset} or _error('Run with "-b" option, but "xset" not found');
+    },
     't=i'    => \$opt{t},
     'l'      => \$opt{l},
     'h|help' => \&_help,
@@ -116,6 +122,7 @@ sub _lock
         if ( !xkb_lock() ) {
             $trayicon->set_from_pixbuf($ICON_OFF);
             $locked = 1;
+            $opt{xset} and run [ $opt{xset}, 'dpms', 'force', 'off' ];
         }
     }
     return $locked;
@@ -144,7 +151,7 @@ sub _help
 {
     return _error(
         sprintf
-            "Usage: %s options:\n  -t=MINUTES (timeout)\n  -l (lock after start)\n  -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)",
+            "Usage: %s options:\n  -t=MINUTES (timeout)\n  -l (lock after start)\n  -b (blank screen after lock)\n  -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)",
         $SELF_NAME
     );
 }
@@ -190,6 +197,7 @@ __C__
 
 /* -------------------------------------------------------------------------- */
 #include <X11/Xlib.h>
+#include <X11/extensions/dpms.h>
 
 /* -------------------------------------------------------------------------- */
 Display * display = NULL;
@@ -198,7 +206,7 @@ Window window = 0;
 /* -------------------------------------------------------------------------- */
 void xkb_unlock() 
 {
-    if( window && display ) { 
+    if( display && window ) { 
         XDestroyWindow( display, window );
     }    
     window = 0;
@@ -209,9 +217,9 @@ void xkb_unlock()
 }
 
 /* -------------------------------------------------------------------------- */
-const char * xkb_lock() 
+const char * xkb_lock()
 {
-    if ( !display ) display = XOpenDisplay(0);
+    if ( !display ) display = XOpenDisplay(NULL);
     if ( !display ) return "can not open display";
  
     XSetWindowAttributes attrib = { 0 };
@@ -226,16 +234,17 @@ const char * xkb_lock()
                             CopyFromParent,
                             CWOverrideRedirect, 
                             &attrib );
-                        
+
     XSelectInput( display, window, KeyPressMask|KeyReleaseMask );
     XMapWindow( display, window );
-    
+
     if ( XGrabKeyboard( display, 
                         window, False, GrabModeAsync, 
                         GrabModeAsync, CurrentTime ) != GrabSuccess ) {
         xkb_unlock();
         return "can not grab keyboard";
     }
+
     return NULL;
 }
 
