@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 # ------------------------------------------------------------------------------
-my ( $INLINE_DIR, $SELF_NAME, $PID_FILE, $ICON_PATH );
+my ( $INLINE_DIR, $SELF_NAME, $PID_FILE, $ICON_PATH, $ICON_ON, $ICON_OFF );
 
 # ------------------------------------------------------------------------------
 BEGIN {
@@ -36,7 +36,7 @@ use X11::IdleTime;
 
 # ------------------------------------------------------------------------------
 const my $SEC_IN_MIN => 60;
-const my @TERMSIG    => qw/INT TERM QUIT PIPE ABRT BUS FPE ILL SEGV SYS STOP TRAP/;
+const my @SIG_TERM   => qw/INT TERM QUIT PIPE ABRT BUS FPE ILL SEGV SYS STOP TRAP/;
 our $VERSION = '1.01';
 
 # ------------------------------------------------------------------------------
@@ -50,9 +50,10 @@ catch {
 
 my %opt = ( i => 'kb', );
 GetOptions(
-    'i=s' => \$opt{i},
-    't=i' => \$opt{t},
-    'l'   => \$opt{l},
+    'i=s'    => \$opt{i},
+    't=i'    => \$opt{t},
+    'l'      => \$opt{l},
+    'h|help' => \&_help,
 ) or _help();
 if ( $opt{t} ) {
     $opt{t} > 0 or _help();
@@ -60,12 +61,12 @@ if ( $opt{t} ) {
 _load_icons();
 
 # ------------------------------------------------------------------------------
-my ( $locked, $ICON_ON, $ICON_OFF ) = (0);
+my $locked   = 0;
 my $trayicon = Gtk3::StatusIcon->new;
 $trayicon->set_tooltip_text("Left click: switch locking\nRight click: unlock and exit");
 $trayicon->set_from_pixbuf($ICON_ON);
 $opt{l} and _lock();
-set_sig_handler $_,     \&_term for @TERMSIG;
+set_sig_handler $_,     \&_term for @SIG_TERM;
 set_sig_handler 'USR1', \&_lock;
 set_sig_handler 'USR2', \&_unlock;
 set_sig_handler 'HUP',  \&_switch;
