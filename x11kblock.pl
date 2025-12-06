@@ -151,7 +151,7 @@ sub _help
 {
     return _error(
         sprintf
-            "Usage: %s options:\n  -t=MINUTES (timeout)\n  -l (lock after start)\n  -b (blank screen on lock)\n  -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)",
+            "Usage: %s options:\n  -t=MINUTES (timeout)\n  -l (lock after start)\n  -b (blank screen after lock)\n  -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)",
         $SELF_NAME
     );
 }
