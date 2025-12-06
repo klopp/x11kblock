@@ -7,6 +7,7 @@ Lock keyboard by timeout.
 Usage: x11kblock.pl options:
   -t=MINUTES (timeout)
   -l (lock after start)
+  -b (blank screen after lock)
   -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)
 ```
 
