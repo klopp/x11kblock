@@ -23,7 +23,6 @@ BEGIN {
 # ------------------------------------------------------------------------------
 use Const::Fast;
 use Daemon::Daemonize qw/check_pidfile delete_pidfile write_pidfile/;
-use File::Which       qw/which/;
 use Getopt::Long;
 use Gtk3 qw/-init/;
 use Inline ( Config => directory => $INLINE_DIR, );
@@ -31,8 +30,9 @@ use Inline (
     C    => 'DATA',
     libs => '-lX11',
 );
-use IPC::Run       qw/run/;
-use Sys::SigAction qw/set_sig_handler/;
+use IPC::Run         qw/run/;
+use Sys::SigAction   qw/set_sig_handler/;
+use Text::ParseWords qw/quotewords/;
 use Try::Catch;
 use X11::IdleTime;
 
@@ -50,12 +50,13 @@ catch {
     _error($_);
 };
 
-my %opt = ( i => 'kb' );
+my %opt = ( i => 'kb', off => [ 'xset', 'dpms', 'force', 'off' ], );
 GetOptions(
     'i=s' => \$opt{i},
-    'b'   => sub {
-        $opt{xset} = which('xset');
-        $opt{xset} or _error('Run with "-b" option, but "xset" not found');
+    'b:s' => sub {
+        my ( undef, $cmd ) = @_;
+        $cmd and $opt{off} = [ grep {$_} quotewords( '\s+', 1, $cmd ) ];
+        return 1;
     },
     't=i'    => \$opt{t},
     'l'      => \$opt{l},
@@ -119,10 +120,10 @@ sub _alarm
 sub _lock
 {
     if ( !$locked ) {
-        if ( !xkb_lock() ) {
+        if ( !xkb_lock(1) ) {
             $trayicon->set_from_pixbuf($ICON_OFF);
             $locked = 1;
-            $opt{xset} and run [ $opt{xset}, 'dpms', 'force', 'off' ];
+            $opt{off} and run $opt{off}, sub { }, sub { }, sub { };
         }
     }
     return $locked;
@@ -151,7 +152,7 @@ sub _help
 {
     return _error(
         sprintf
-            "Usage: %s options:\n  -t=MINUTES (timeout)\n  -l (lock after start)\n  -b (blank screen after lock)\n  -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)",
+            "Usage: %s options:\n  -t=MINUTES (timeout)\n  -l (lock after start)\n  -b[=cmd] (blank screen after lock, default: 'xset dpms force off')\n  -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)",
         $SELF_NAME
     );
 }
@@ -197,7 +198,6 @@ __C__
 
 /* -------------------------------------------------------------------------- */
 #include <X11/Xlib.h>
-#include <X11/extensions/dpms.h>
 
 /* -------------------------------------------------------------------------- */
 Display * display = NULL;
