@@ -23,7 +23,6 @@ BEGIN {
 # ------------------------------------------------------------------------------
 use Const::Fast;
 use Daemon::Daemonize qw/check_pidfile delete_pidfile write_pidfile/;
-use File::Which       qw/which/;
 use Getopt::Long;
 use Gtk3 qw/-init/;
 use Inline ( Config => directory => $INLINE_DIR, );
