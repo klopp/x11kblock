@@ -39,7 +39,7 @@ use X11::IdleTime;
 # ------------------------------------------------------------------------------
 const my $SEC_IN_MIN => 60;
 const my @SIG_TERM   => qw/INT TERM QUIT PIPE ABRT BUS FPE ILL SEGV SYS STOP TRAP/;
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 # ------------------------------------------------------------------------------
 check_pidfile($PID_FILE) and _error('Already loaded');
@@ -120,10 +120,10 @@ sub _alarm
 sub _lock
 {
     if ( !$locked ) {
-        if ( !xkb_lock(1) ) {
+        if ( !xkb_lock() ) {
             $trayicon->set_from_pixbuf($ICON_OFF);
             $locked = 1;
-            $opt{off} and run $opt{off}, sub { }, sub { }, sub { };
+            $opt{b} and run $opt{off}, sub { }, sub { }, sub { };
         }
     }
     return $locked;
@@ -153,7 +153,7 @@ sub _help
     return _error(
         sprintf
             "Usage: %s options:\n  -t=MINUTES (timeout)\n  -l (lock after start)\n  -b[=cmd] (blank screen after lock, default: 'xset dpms force off')\n  -i=PREFIX (icons: i/lock/PREFIX.png, i/unlock/PREFIX.png)",
-        $SELF_NAME
+        $SELF_NAME,
     );
 }
 
@@ -162,7 +162,7 @@ sub _error
 {
     my ($msg) = @_;
 
-    my $dialog = Gtk3::Dialog->new( sprintf( '%s v %s', $SELF_NAME, $VERSION ),
+    my $dialog = Gtk3::Dialog->new( sprintf( '%s version %s', $SELF_NAME, $VERSION ),
         undef, 'destroy-with-parent', 'gtk-ok' => 'none' );
     my $label = Gtk3::Label->new("\n$msg\n");
     $dialog->get_content_area()->add($label);
